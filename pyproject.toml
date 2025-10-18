@@ -1,0 +1,23 @@
+[project]
+name = "imaginer"
+version = "0.1.0"
+description = "CLI for converting/compressing images and generating caption-based filenames"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Ethan" }]
+license = { text = "MIT" }
+dependencies = [
+    "pillow>=10.0.0",
+    "transformers>=4.41.0",
+    "torch>=2.1.0",
+]
+
+[project.scripts]
+imaginer = "cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["cli", "convert", "caption", "llm_system_prompt", "main"]
