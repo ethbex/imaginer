@@ -20,4 +20,4 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["cli", "convert", "caption", "llm_system_prompt", "main"]
+py-modules = ["cli", "convert", "rename", "llm_system_prompt", "main"]

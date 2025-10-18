@@ -3,7 +3,7 @@ imaginer: A CLI tool for simple image workflows
 
 Subcommands:
   - convert: Convert/resize/compress images (single file or folder)
-  - caption: Generate captions and rename images accordingly (file or folder)
+	- rename: Generate names (via captioning) and rename images (file or folder)
 
 Install (with uv):
   uv tools install .
@@ -11,8 +11,8 @@ Install (with uv):
 Usage examples:
   imaginer convert ./image.jpg --format webp --max-width 1200 --compress 80
   imaginer convert ./images --max-width 1024
-  imaginer caption ./image.jpg --case title --glue "-"
-  imaginer caption ./images --prefix "IMG_" --case lower
+	imaginer rename ./image.jpg --case title --glue "-"
+	imaginer rename ./images --prefix "IMG_" --case lower
 """
 
 from __future__ import annotations
@@ -35,18 +35,19 @@ def build_parser() -> argparse.ArgumentParser:
 	p_conv.add_argument("--compress", type=int, default=None, help="Compression quality (e.g., 80)")
 
 	# caption subcommand
-	p_cap = subparsers.add_parser("caption", help="Generate captions and rename images")
-	p_cap.add_argument("path", help="Path to an image file or a folder of images")
-	p_cap.add_argument("--prefix", type=str, default=None)
-	p_cap.add_argument("--suffix", type=str, default=None)
-	p_cap.add_argument("--glue", type=str, default=None, help="Replace spaces with this string in caption")
-	p_cap.add_argument(
+	p_ren = subparsers.add_parser("rename", help="Generate names from image content and rename files")
+	p_ren.add_argument("path", help="Path to an image file or a folder of images")
+	p_ren.add_argument("--prefix", type=str, default=None)
+	p_ren.add_argument("--suffix", type=str, default=None)
+	p_ren.add_argument("--glue", type=str, default=None, help="Replace spaces with this string in the resulting name")
+	p_ren.add_argument(
 		"--case",
 		type=str,
 		choices=["upper", "lower", "title", "sentence"],
 		default=None,
-		help="Change caption case",
+		help="Change case of resulting name",
 	)
+	p_ren.add_argument("--model", type=str, choices=["small", "large"], default="small", help="Model size for generating name")
 
 	return parser
 
@@ -102,10 +103,10 @@ def handle_convert(args: argparse.Namespace) -> int:
 		return 2
 
 
-def handle_caption(args: argparse.Namespace) -> int:
+def handle_rename(args: argparse.Namespace) -> int:
 	# Lazy import to avoid requiring Transformers/Torch unless this command is used
-	from caption import (
-		generate_caption,
+	from rename import (
+		generate_name,
 		normalise,
 		glue,
 		prefix as add_prefix,
@@ -118,20 +119,20 @@ def handle_caption(args: argparse.Namespace) -> int:
 	p = Path(args.path)
 
 	def process_one(image_path: Path):
-		cap = generate_caption(str(image_path))
-		cap = normalise(cap)
+		name = generate_name(str(image_path), args.model)
+		name = normalise(name)
 		if args.glue:
-			cap = glue(cap, args.glue)
+			name = glue(name, args.glue)
 		if args.prefix:
-			cap = add_prefix(cap, args.prefix)
+			name = add_prefix(name, args.prefix)
 		if args.suffix:
-			cap = add_suffix(cap, args.suffix)
+			name = add_suffix(name, args.suffix)
 		if args.case:
-			cap = apply_case(cap, args.case)
+			name = apply_case(name, args.case)
 		# keep original extension when renaming
-		new_name = cap + image_path.suffix
+		new_name = name + image_path.suffix
 		rename_file(str(image_path), new_name)
-		print(cap)
+		print(name)
 
 	def image_files_in_dir(dir_path: Path):
 		return [f for f in dir_path.iterdir() if f.is_file() and f.suffix.lower() in IMAGE_EXTS]
@@ -167,8 +168,8 @@ def main(argv: list[str] | None = None) -> int:
 	args = parser.parse_args(argv)
 	if args.command == "convert":
 		return handle_convert(args)
-	if args.command == "caption":
-		return handle_caption(args)
+	if args.command == "rename":
+		return handle_rename(args)
 	parser.print_help()
 	return 2
 

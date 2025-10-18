@@ -1,21 +1,123 @@
+# imaginer
 
-imaginer rename <image-file>
-imaginer rename <folder>
+Image tooling CLI for quick converting, resizing, compressing, and renaming images based on ML-generated descriptions.
+
+## Install uv
+
+uv is a fast Python package manager. Install it (macOS/Linux):
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+If you don't have curl, use wget:
+
+```sh
+wget -qO- https://astral.sh/uv/install.sh | sh
+```
+
+On Windows (PowerShell):
+
+```powershell
+iwr https://astral.sh/uv/install.ps1 -useb | iex
+```
+
+Verify:
+
+```sh
+uv --version
+```
+
+## Install imaginer (CLI)
+
+Install directly from GitHub:
+
+```sh
+uv tools install https://github.com/ethbex/imaginer.git
+```
+
+Update to the latest version anytime:
+
+```sh
+uv tool update https://github.com/ethbex/imaginer.git
+```
+
+This will install a console command named `imaginer` into your environment (or user-level bin if configured).
+
+## Usage
+
+`imaginer` has two subcommands: `convert` and `rename`.
+
+### convert
+
+Convert image format, resize to a max size, and/or compress. Operates on a single file or all supported images in a folder.
+
+Supported formats: jpeg, jpg, png, webp
 
 Flags:
+- `--format {jpeg|jpg|png|webp}`: convert to target format (optional)
+- `--max-width <int>`: maximum width (maintains aspect ratio)
+- `--max-height <int>`: maximum height (maintains aspect ratio)
+- `--compress <int>`: quality level (e.g., 80). For JPEG/WebP, lower means smaller size
 
---prefix="string"
---suffix="string"
---glue="string"
---case=upper/lower/title/sentence
+Examples:
 
+```sh
+# Convert a single image to WebP and compress
+imaginer convert ./image.jpg --format webp --compress 80
 
-imaginer convert <image-file>
-imaginer convert <folder>
+# Resize all images in a folder to max width 1200px
+imaginer convert ./images --max-width 1200
+
+# Convert and resize
+imaginer convert ./photo.png --format jpeg --max-width 1600 --max-height 1200
+```
+
+### rename
+
+Generate a descriptive name from image content using a vision-language model (BLIP) and rename the file. You can normalize, change case, glue spaces, and add prefixes/suffixes. Works on a single file or a folder.
 
 Flags:
+- `--model {small|large}`: model size for generating names (default: small)
+- `--prefix <str>`: prepend string to the generated name
+- `--suffix <str>`: append string to the generated name
+- `--glue <str>`: replace spaces with this string (e.g., "-" or "_")
+- `--case {upper|lower|title|sentence}`: change case of the resulting name
 
---format=
---max-width=
---max-height=
---compress=
+Notes:
+- On first use, the vision-language model will be downloaded and stored in the Hugging Face cache. Approximate sizes:
+	- small (Salesforce/blip-image-captioning-base): ~990 MB
+	- large (Salesforce/blip-image-captioning-large): ~1.88 GB
+	The default cache location is `~/.cache/huggingface` (set `HF_HOME` to customize).
+- If a target filename already exists, `imaginer` appends a number (1, 2, …) to avoid overwriting.
+- The original file extension is preserved when renaming.
+
+Examples:
+
+```sh
+# Rename a single image using the small model, title case, and dashes
+imaginer rename ./image.jpg --model small --case title --glue "-"
+
+# Rename all images in a folder with a prefix and lowercase
+imaginer rename ./images --prefix "img_" --case lower
+
+# Use the larger model variant for (potentially) higher quality descriptions
+imaginer rename ./image.png --model large
+```
+
+## Supported inputs
+
+- Single image files: .jpg, .jpeg, .png, .webp, .bmp, .tiff, .tif, .gif
+- Directories: processes all supported image files directly under the folder (non-recursive)
+
+## Requirements
+
+- Python 3.9+
+- For `convert`: Pillow
+- For `rename`: Transformers and PyTorch (downloaded models will be cached by Hugging Face)
+
+## Troubleshooting
+
+- If `imaginer` isn’t found after install, ensure `uv`'s bin directory is on your PATH or run within the same environment where it was installed.
+- Large model downloads can be slow the first time; they’re cached afterwards.
+
