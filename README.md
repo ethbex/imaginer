@@ -39,7 +39,7 @@ uv tools install https://github.com/ethbex/imaginer.git
 Update to the latest version anytime:
 
 ```sh
-uv tool update https://github.com/ethbex/imaginer.git
+uv tool update imaginer
 ```
 
 This will install a console command named `imaginer` into your environment (or user-level bin if configured).
