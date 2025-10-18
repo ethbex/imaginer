@@ -1,5 +1,10 @@
 # imaginer
 
+<p align="center">
+	<img src="logo.png" alt="imaginer logo" width="200"/>
+</p>
+# imaginer
+
 Image tooling CLI for quick converting, resizing, compressing, and renaming images based on ML-generated descriptions.
 
 ## Install uv
