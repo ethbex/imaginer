@@ -71,6 +71,10 @@ imaginer convert ./images --max-width 1200
 
 # Convert and resize
 imaginer convert ./photo.png --format jpeg --max-width 1600 --max-height 1200
+
+# If you're already in the folder with images, target the current directory
+cd images
+imaginer convert . --max-width 1200
 ```
 
 ### rename
@@ -103,6 +107,10 @@ imaginer rename ./images --prefix "img_" --case lower
 
 # Use the larger model variant for (potentially) higher quality descriptions
 imaginer rename ./image.png --model large
+
+# If you're already in the folder with images, target the current directory
+cd images
+imaginer rename . --prefix "img_" --case lower
 ```
 
 ## Supported inputs
