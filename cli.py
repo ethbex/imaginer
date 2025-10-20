@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 	p_ren.add_argument("--prefix", type=str, default=None)
 	p_ren.add_argument("--suffix", type=str, default=None)
 	p_ren.add_argument("--glue", type=str, default=None, help="Replace spaces with this string in the resulting name")
+	p_ren.add_argument("--context", type=str, default=None, help="Optional prompt prefix for conditional naming (e.g., 'Bottle of ')")
 	p_ren.add_argument(
 		"--case",
 		type=str,
@@ -119,7 +120,7 @@ def handle_rename(args: argparse.Namespace) -> int:
 	p = Path(args.path)
 
 	def process_one(image_path: Path):
-		name = generate_name(str(image_path), args.model)
+		name = generate_name(str(image_path), args.model, context=args.context)
 		name = normalise(name)
 		if args.glue:
 			name = glue(name, args.glue)

@@ -1,0 +1,11 @@
+README.md
+cli.py
+convert.py
+pyproject.toml
+rename.py
+imaginer.egg-info/PKG-INFO
+imaginer.egg-info/SOURCES.txt
+imaginer.egg-info/dependency_links.txt
+imaginer.egg-info/entry_points.txt
+imaginer.egg-info/requires.txt
+imaginer.egg-info/top_level.txt

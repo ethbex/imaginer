@@ -22,9 +22,14 @@ def _get_captioner(model_size: str):
     _MODEL_CACHE[model_size] = cap
     return cap
 
-def generate_name(image_path: str, model_size: str = "small") -> str:
+def generate_name(image_path: str, model_size: str = "small", context: str | None = None) -> str:
     cap = _get_captioner(model_size)
-    out = cap(image_path)
+    # If context is provided, use conditional captioning with a prompt prefix
+    if context:
+        payload = {"image": image_path, "text": context}
+        out = cap(payload)
+    else:
+        out = cap(image_path)
     # BLIP returns [{"generated_text": "..."}]
     return out[0]["generated_text"]
 
@@ -98,6 +103,7 @@ def parse_args():
     p.add_argument("--glue", type=str, default=None)
     p.add_argument("--case", type=str, choices=["upper", "lower", "title", "sentence"], default=None)
     p.add_argument("--model", type=str, choices=["small", "large"], default="small", help="Caption model size")
+    p.add_argument("--context", type=str, default=None, help="Optional prompt prefix for conditional naming (e.g., 'Bottle of ') ")
     return p.parse_args()
 
 # --- Main ---
@@ -119,7 +125,7 @@ if __name__ == "__main__":
     # process
     for image_path in image_paths:
         try:
-            name = generate_name(image_path, args.model)
+            name = generate_name(image_path, args.model, context=args.context)
         except Exception as e:
             print(f"Caption failed for {image_path}: {e}")
             continue

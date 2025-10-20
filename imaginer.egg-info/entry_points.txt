@@ -1,0 +1,2 @@
+[console_scripts]
+imaginer = cli:main
