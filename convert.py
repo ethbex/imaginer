@@ -9,11 +9,19 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif", ".gif"}
 def is_image_file(p: Path) -> bool:
     return p.is_file() and p.suffix.lower() in IMAGE_EXTS
 
-def convert_image(image: str, fmt: str) -> str:
-    """Convert to fmt and remove original. Returns the new path."""
+def convert_image(image: str, fmt: str, remove_original: bool = False, out_path: str | None = None) -> str:
+    """Convert to fmt. Optionally remove the original when format changes.
+
+    Returns the new path.
+    """
     fmt = FORMAT_ALIASES.get(fmt.lower(), fmt.upper())
     base, _ = os.path.splitext(image)
-    new_path = f"{base}.{fmt.lower()}"
+    # Determine output path; if caller provided, enforce matching extension to fmt
+    if out_path is not None:
+        out_base, _out_ext = os.path.splitext(out_path)
+        new_path = f"{out_base}.{fmt.lower()}"
+    else:
+        new_path = f"{base}.{fmt.lower()}"
 
     same_path = os.path.abspath(new_path) == os.path.abspath(image)
 
@@ -29,20 +37,22 @@ def convert_image(image: str, fmt: str) -> str:
                 im = im.convert("RGB")
         im.save(new_path, format=fmt)
 
-    if not same_path and os.path.exists(new_path) and os.path.exists(image):
+    if remove_original and (not same_path) and os.path.exists(new_path) and os.path.exists(image):
         os.remove(image)
 
     return new_path
 
-def max_size(image: str, max_width: int | None, max_height: int | None) -> None:
+def max_size(image: str, max_width: int | None, max_height: int | None, out_path: str | None = None) -> str:
     with Image.open(image) as im:
         im = ImageOps.exif_transpose(im)
         w = max_width if max_width is not None else 10**9
         h = max_height if max_height is not None else 10**9
         im.thumbnail((w, h), Image.Resampling.LANCZOS)
-        im.save(image)
+        target = out_path or image
+        im.save(target)
+        return target
 
-def compress_image(image: str, quality: int) -> None:
+def compress_image(image: str, quality: int, out_path: str | None = None) -> str:
     with Image.open(image) as im:
         fmt = (im.format or "").upper()
         save_kwargs = {}
@@ -56,7 +66,9 @@ def compress_image(image: str, quality: int) -> None:
             save_kwargs = dict(quality=quality, method=6)  # needs Pillow with libwebp
         else:
             save_kwargs = dict(quality=quality)
-        im.save(image, **save_kwargs)
+        target = out_path or image
+        im.save(target, **save_kwargs)
+        return target
 
 def parse_args():
     p = argparse.ArgumentParser()

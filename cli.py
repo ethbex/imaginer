@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import shutil
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
 	p_conv.add_argument("--max-width", type=int, default=None)
 	p_conv.add_argument("--max-height", type=int, default=None)
 	p_conv.add_argument("--compress", type=int, default=None, help="Compression quality (e.g., 80)")
+	p_conv.add_argument(
+		"--replace",
+		action="store_true",
+		help="Replace originals in-place; by default, outputs are written to an 'imaginer-converted' folder",
+	)
 
 	# caption subcommand
 	p_ren = subparsers.add_parser("rename", help="Generate names from image content and rename files")
@@ -67,12 +73,42 @@ def handle_convert(args: argparse.Namespace) -> int:
 
 	def process_one(file_path: Path):
 		current_path = str(file_path)
+		# In-place flow
+		if args.replace:
+			if args.format is not None:
+				current_path = convert_image(current_path, args.format, remove_original=True)
+			if (args.max_width is not None) or (args.max_height is not None):
+				current_path = max_size(current_path, args.max_width, args.max_height)
+			if args.compress is not None:
+				current_path = compress_image(current_path, args.compress)
+			print(f"Done: {current_path}")
+			return
+
+		# Default: write to imaginer-converted next to source
+		dest_dir = file_path.parent / "imaginer-converted"
+		dest_dir.mkdir(exist_ok=True)
+		dest_path = dest_dir / file_path.name
+
+		# If converting, write converted file directly to dest
 		if args.format is not None:
-			current_path = convert_image(current_path, args.format)
+			current_path = convert_image(current_path, args.format, out_path=str(dest_path))
+		else:
+			# If neither resize nor compress, just copy original to dest
+			if (args.max_width is None and args.max_height is None and args.compress is None):
+				shutil.copy2(file_path, dest_path)
+				print(f"Done: {dest_path}")
+				return
+			# We'll write results into dest_path
+			current_path = str(dest_path)
+
+		# Resize if requested
 		if (args.max_width is not None) or (args.max_height is not None):
-			max_size(current_path, args.max_width, args.max_height)
+			src_for_resize = current_path if args.format is not None else str(file_path)
+			current_path = max_size(src_for_resize, args.max_width, args.max_height, out_path=current_path)
+		# Compress if requested
 		if args.compress is not None:
-			compress_image(current_path, args.compress)
+			current_path = compress_image(current_path, args.compress, out_path=current_path)
+
 		print(f"Done: {current_path}")
 
 	if p.is_dir():
