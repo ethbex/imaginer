@@ -33,39 +33,23 @@ def _get_captioner(model_size: str):
     if tokenizer is None:
         tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-    def caption(image_path: str) -> str:
-        """Return a generated caption string for image_path."""
+    def caption(image_path: str, context: str | None = None) -> str:
         image = Image.open(image_path).convert("RGB")
-        # processor will prepare pixel_values and any other required inputs
-        inputs = processor(images=image, return_tensors="pt")
-
-        # generate token ids
+        text = context or ""
+        inputs = processor(images=image, text=text, return_tensors="pt")
         generated_ids = model.generate(**inputs)
+        text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+        return text
 
-        # decode to text; prefer processor.decode if available, otherwise tokenizer.decode
-        decode_fn = getattr(processor, "decode", None)
-        if callable(decode_fn):
-            text = decode_fn(generated_ids[0], skip_special_tokens=True)
-        else:
-            # tokenizer may require passing the ids as a list of ints
-            text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-
-        # ensure string type
-        return str(text)
 
     _MODEL_CACHE[model_size] = caption
     return caption
 
 def generate_name(image_path: str, model_size: str = "small", context: str | None = None) -> str:
     cap = _get_captioner(model_size)
-    # If context is provided, use conditional captioning with a prompt prefix
-    if context:
-        payload = {"image": image_path, "text": context}
-        out = cap(payload)
-    else:
-        out = cap(image_path)
-    # BLIP returns [{"generated_text": "..."}]
-    return out[0]["generated_text"]
+    out = cap(image_path, context)
+    return out
+
 
 # --- String transforms ---
 def prefix(name: str, string: str) -> str:
