@@ -1,26 +1,60 @@
+#!/usr/bin/env python3
 import argparse
 import os
 import re
-from typing import List
+from typing import List, Callable, Dict
 
 # --- Config ---
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}  # extend if you like
-_MODEL_CACHE = {}  # lazy, per-model cache for the captioner
+_MODEL_CACHE: Dict[str, Callable[[str], str]] = {}  # lazy, per-model cache for the captioner
 
 # --- Captioning ---
 def _get_captioner(model_size: str):
-    """Lazy-load and cache a transformers pipeline for the chosen model size."""
+    """Lazy-load and cache an image->text caption function for the chosen model size."""
     if model_size in _MODEL_CACHE:
         return _MODEL_CACHE[model_size]
-    from transformers import pipeline  # lazy import
+
+    # lazy imports to avoid heavy startup when not used
+    from transformers import AutoProcessor, AutoModelForImageTextToText, AutoTokenizer
+    from PIL import Image
+
     model_map = {
         "small": "Salesforce/blip-image-captioning-base",
         "large": "Salesforce/blip-image-captioning-large",
     }
     model_id = model_map.get(model_size, model_map["small"])
-    cap = pipeline("image-to-text", model=model_id)
-    _MODEL_CACHE[model_size] = cap
-    return cap
+
+    # load processor + model (these are the recommended objects for vision->text models)
+    processor = AutoProcessor.from_pretrained(model_id)
+    model = AutoModelForImageTextToText.from_pretrained(model_id)
+
+    # Some processors expose a tokenizer via `processor.tokenizer`; if not, fall back to AutoTokenizer.
+    tokenizer = getattr(processor, "tokenizer", None)
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+    def caption(image_path: str) -> str:
+        """Return a generated caption string for image_path."""
+        image = Image.open(image_path).convert("RGB")
+        # processor will prepare pixel_values and any other required inputs
+        inputs = processor(images=image, return_tensors="pt")
+
+        # generate token ids
+        generated_ids = model.generate(**inputs)
+
+        # decode to text; prefer processor.decode if available, otherwise tokenizer.decode
+        decode_fn = getattr(processor, "decode", None)
+        if callable(decode_fn):
+            text = decode_fn(generated_ids[0], skip_special_tokens=True)
+        else:
+            # tokenizer may require passing the ids as a list of ints
+            text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+
+        # ensure string type
+        return str(text)
+
+    _MODEL_CACHE[model_size] = caption
+    return caption
 
 def generate_name(image_path: str, model_size: str = "small", context: str | None = None) -> str:
     cap = _get_captioner(model_size)
