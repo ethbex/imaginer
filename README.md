@@ -1,10 +1,5 @@
 # imaginer
 
-<p align="center">
-	<img src="logo.png" alt="imaginer logo" width="200"/>
-</p>
-# imaginer
-
 Image tooling CLI for quick converting, resizing, compressing, and renaming images based on ML-generated descriptions.
 
 ## Install uv
@@ -57,6 +52,8 @@ This will install a console command named `imaginer` into your environment (or u
 
 Convert image format, resize to a max size, and/or compress. Operates on a single file or all supported images in a folder.
 
+By default, converted/resized/compressed outputs are written into a new folder named `imaginer-converted` next to your source files. Use `--replace` to modify files in-place instead.
+
 Supported formats: jpeg, jpg, png, webp
 
 Flags:
@@ -64,6 +61,7 @@ Flags:
 - `--max-width <int>`: maximum width (maintains aspect ratio)
 - `--max-height <int>`: maximum height (maintains aspect ratio)
 - `--compress <int>`: quality level (e.g., 80). For JPEG/WebP, lower means smaller size
+- `--replace`: replace the original files in-place (default behavior writes to `imaginer-converted`)
 
 Examples:
 
@@ -80,6 +78,9 @@ imaginer convert ./photo.png --format jpeg --max-width 1600 --max-height 1200
 # If you're already in the folder with images, target the current directory
 cd images
 imaginer convert . --max-width 1200
+
+# Write results in-place instead of imaginer-converted
+imaginer convert ./images --max-width 1200 --replace
 ```
 
 ### rename
@@ -92,6 +93,7 @@ Flags:
 - `--suffix <str>`: append string to the generated name
 - `--glue <str>`: replace spaces with this string (e.g., "-" or "_")
 - `--case {upper|lower|title|sentence}`: change case of the resulting name
+- `--context <str>`: optional prompt prefix for conditional naming (e.g., `"Bottle of "`)
 
 Notes:
 - On first use, the vision-language model will be downloaded and stored in the Hugging Face cache. Approximate sizes:
@@ -116,6 +118,9 @@ imaginer rename ./image.png --model large
 # If you're already in the folder with images, target the current directory
 cd images
 imaginer rename . --prefix "img_" --case lower
+
+# Use a context prefix to steer naming (note trailing space for natural phrasing)
+imaginer rename ./bottle.jpg --context "Bottle of " --glue "-" --case title
 ```
 
 ## Supported inputs
